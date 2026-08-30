@@ -23,6 +23,7 @@ import { useSettings } from "@/context/settings"
 import { getSessionHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
+import { MarkdownAwareFileView } from "@/pages/session/markdown-file-view"
 
 type SessionFileViewProps = {
   tab: string
@@ -729,7 +730,7 @@ function SessionFileViewV2(props: { tab: string }) {
     scrollSync.queueRestore()
   })
 
-  const renderFile = (source: string) => (
+  const renderSource = (source: string) => (
     <div class="relative overflow-hidden pb-40">
       <Dynamic
         component={fileComponent}
@@ -780,6 +781,16 @@ function SessionFileViewV2(props: { tab: string }) {
         }}
       />
     </div>
+  )
+
+  const renderFile = (source: string) => (
+    <MarkdownAwareFileView
+      tab={props.tab}
+      path={path()}
+      text={source}
+      cacheKey={cacheKey()}
+      fallback={() => renderSource(source)}
+    />
   )
 
   const content = () => (

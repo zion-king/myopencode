@@ -96,13 +96,19 @@ const domains = [
   },
 ] as const
 
+// Local rewrite keys are declared in en.ts only. Other locales resolve them through the
+// English base dictionary (see context/language.tsx), so parity is not required for them.
+// See P6 in rewrites/PRINCIPLES.md.
+const REWRITE_KEY_PREFIXES = ["session.files.markdown."]
+const isRewriteKey = (key: string) => REWRITE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))
+
 describe("i18n parity", () => {
   test("non-English locales have every English key and required plural variants", async () => {
     for (const domain of domains) {
       const source = await dictionary(domain.source)
       for (const locale of domain.locales) {
         const target = await dictionary(domain.target(locale))
-        const missing = Object.keys(source).filter((key) => !Object.hasOwn(target, key))
+        const missing = Object.keys(source).filter((key) => !Object.hasOwn(target, key) && !isRewriteKey(key))
         const extra = Object.keys(target)
           .filter((key) => !Object.hasOwn(source, key))
           .sort()
