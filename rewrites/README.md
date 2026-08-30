@@ -36,6 +36,7 @@ from `+62/-50` to `+13/-1`, the i18n policy, and a per-rewrite checklist — is 
 rewrites/
   README.md                 <- this file: index, inventory, environment, build, rebase runbook
   PRINCIPLES.md             <- how to make a change safely; read before editing upstream
+  CHANGELOG.md              <- running record of every landed spec and rewrite update
   specs/
     NNN-slug.md             <- one spec per rewrite, numbered in order
 ```
@@ -49,6 +50,8 @@ moving base branch is only reproducible if the commit is written down.
 | ID  | Title                 | Status | Upstream files touched                                                                 | Base commit |
 | --- | --------------------- | ------ | -------------------------------------------------------------------------------------- | ----------- |
 | 001 | Markdown file preview | Verified | `pages/session/file-tabs.tsx` (+13/-1), `i18n/en.ts` (+3), `i18n/parity.test.ts` (+8/-1) | `38e10eb`   |
+
+Per-change detail, dates, and commits are in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Environment
 
