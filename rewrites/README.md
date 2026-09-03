@@ -154,6 +154,18 @@ Verified output at base `38e10eb`:
 packages/desktop/dist/opencode-desktop-win-x64.exe   175.5 MB   ProductName "OpenCode Dev"  v1.18.15
 ```
 
+***Automated portable-build script***
+
+Because local setups without officially registered code-signing certificates may cause Windows Defender Application Control (AppLocker) to block the final single-file `.exe` installer step, we have provided an automated portable-build script. 
+
+To automatically build the fully unpacked app and copy it securely to your local projects folder, run:
+
+```powershell
+.\rewrites\scripts\build-portable.ps1 <TargetFolder>
+```
+
+Where `<TargetFolder>` is the path to your local projects folder. By default, it is set to `C:\Users\pibzion\Local\Projects\OpenCode Dev\dist`, but you can change it by passing the path to the script as an argument.
+
 ## Rebase runbook
 
 This fork tracks upstream `dev`, which has no release boundaries. Sync deliberately,
