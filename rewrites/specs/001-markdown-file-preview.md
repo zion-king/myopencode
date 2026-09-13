@@ -4,7 +4,7 @@
 | ------------- | ------------------------------------------------------------ |
 | Status        | Verified                                                      |
 | Branch        | `rewrite/001-markdown-file-preview`                           |
-| Upstream base | `38e10eb1408feb700021b8e8766fb0ab41bf84e2` (`dev`, 2026-08-08) |
+| Upstream base | `95daf90670b7c039c436c85537da5fbfe2205b41` (`dev`, 2026-09-11); originally `38e10eb` (2026-08-08) |
 | Release near base | `v1.18.15` (2026-08-07)                                   |
 | Date          | 2026-08-09                                                    |
 
@@ -168,18 +168,22 @@ English-fallback mechanism that makes it safe.
 
 ## Automated verification
 
-At base `38e10eb`, from `packages/app`:
+Re-verified at base `95daf90` (upstream sync), from `packages/app`:
 
-| Check | Result |
-| ----- | ------ |
-| `bun typecheck` | exit 0 |
-| `bun run test:unit` | 727 pass, 0 fail |
-| `bun run test:browser` | 41 pass, 0 fail |
-| `markdown-file-view-policy.test.ts` | 9 pass |
-| Vite module transform of `markdown-file-view.tsx` | HTTP 200, `@opencode-ai/session-ui/markdown` resolved |
+| Check | Result at `95daf90` | (orig `38e10eb`) |
+| ----- | ------ | ------ |
+| typecheck | exit 0 (via `tsc -b`; see note) | exit 0 |
+| `bun run test:unit` | 733 pass, 0 fail | 727 pass |
+| `bun run test:browser` | 41 pass, 0 fail | 41 pass |
+| `markdown-file-view-policy.test.ts` | 9 pass | 9 pass |
+| `@opencode-ai/session-ui/markdown` import | resolves (the `./*` export survived the merge) | resolves |
 
-Note: `bun typecheck` requires the Windows symlink workaround described in
-`rewrites/README.md`, otherwise it fails on an unrelated pre-existing error.
+Notes:
+- `bun typecheck` requires the Windows symlink workaround described in `rewrites/README.md`.
+- At `95daf90`, the configured `tsgo` (`@typescript/native-preview`) binary is blocked by
+  Windows Application Control after `bun install` re-extracted it, so types were validated
+  with the JS `tsc -b` (TypeScript 5.8.2) fallback, which runs under permitted `node`. Same
+  project graph, exit 0. See the AppLocker note in `rewrites/README.md`.
 
 ## Manual verification
 

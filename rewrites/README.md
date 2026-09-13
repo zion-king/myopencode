@@ -34,8 +34,9 @@ from `+62/-50` to `+13/-1`, the i18n policy, and a per-rewrite checklist — is 
 
 ```
 rewrites/
-  README.md                 <- this file: index, inventory, environment, build, rebase runbook
+  README.md                 <- this file: index, inventory, environment, build
   PRINCIPLES.md             <- how to make a change safely; read before editing upstream
+  UPSTREAM_SYNC.md          <- step-by-step runbook for syncing with upstream OpenCode
   CHANGELOG.md              <- running record of every landed spec and rewrite update
   specs/
     NNN-slug.md             <- one spec per rewrite, numbered in order
@@ -49,7 +50,7 @@ moving base branch is only reproducible if the commit is written down.
 
 | ID  | Title                 | Status | Upstream files touched                                                                 | Base commit |
 | --- | --------------------- | ------ | -------------------------------------------------------------------------------------- | ----------- |
-| 001 | Markdown file preview | Verified | `pages/session/file-tabs.tsx` (+13/-1), `i18n/en.ts` (+3), `i18n/parity.test.ts` (+8/-1) | `38e10eb`   |
+| 001 | Markdown file preview | Verified | `pages/session/file-tabs.tsx` (+13/-1), `i18n/en.ts` (+3), `i18n/parity.test.ts` (+8/-1) | `95daf90`   |
 
 Per-change detail, dates, and commits are in [CHANGELOG.md](./CHANGELOG.md).
 
@@ -92,13 +93,37 @@ Proper fix: enable Windows Developer Mode (or run elevated), then
 The other two source symlinks (`packages/docs/openapi.json`,
 `packages/enterprise/src/custom-elements.d.ts`) are not needed for app or desktop work.
 
+### Windows Application Control (AppLocker) blocks freshly-extracted native binaries
+
+This machine runs a Windows Application Control / AppLocker policy that blocks execution of
+unsigned native `.exe` binaries written into user-space paths. Two consequences:
+
+1. **Packaging:** the NSIS single-file installer (`package:win`) is blocked when
+   electron-builder tries to run it to extract the uninstaller. Use the unpacked (`--dir`)
+   portable build instead — see `rewrites/scripts/build-portable.ps1`.
+2. **Typecheck:** the configured checker `tsgo` (`@typescript/native-preview`) is a native
+   binary. After any `bun install` re-extracts it, AppLocker blocks `tsgo.exe`
+   (symptom: `bun typecheck` exits 1 with `bun: unknown error:` and no TS diagnostics; running
+   `tsgo` directly reports *"An Application Control policy has blocked this file"*). The
+   version is irrelevant — a freshly-written copy loses its allowed state.
+
+   Fallback that runs under permitted `node`:
+
+   ```
+   node ../../node_modules/typescript/bin/tsc -b   # from packages/app
+   ```
+
+   This validates the same project graph via the JS TypeScript compiler. Types are equivalent
+   for verification; only the engine differs. Proper fix requires an admin allowlist entry for
+   the binary (not available on this machine).
+
 ### Verifying a change
 
 ```
 cd packages/app
-bun typecheck        # must exit 0
-bun run test:unit    # 727 pass at base 38e10eb
-bun run test:browser # 41 pass at base 38e10eb
+bun typecheck        # must exit 0 (see tsgo/AppLocker note below)
+bun run test:unit    # 733 pass at base 95daf90 (was 727 at 38e10eb)
+bun run test:browser # 41 pass at base 95daf90
 ```
 
 The unit suite is occasionally flaky: one run out of seven reported a single failure that
@@ -166,21 +191,9 @@ To automatically build the fully unpacked app and copy it securely to your local
 
 Where `<TargetFolder>` is the path to your local projects folder. By default, it is set to `C:\Users\pibzion\Local\Projects\OpenCode Dev\dist`, but you can change it by passing the path to the script as an argument.
 
-## Rebase runbook
+## Upstream Sync Runbook
 
 This fork tracks upstream `dev`, which has no release boundaries. Sync deliberately,
 not continuously.
 
-```
-git fetch upstream --tags
-git rebase upstream/dev              # on the rewrite branch
-```
-
-After rebasing:
-
-1. Re-read each spec's "Rebase notes" section for the code it depends on.
-2. Re-run the verification steps in the spec. They are the regression suite.
-3. Update the spec's base commit to the new upstream SHA.
-
-If a rewrite's single edit site has moved or been deleted, that is a signal to re-derive
-the change rather than force the old patch into place.
+For a comprehensive, step-by-step guide on safely merging upstream changes, verifying the build, and handling Windows environment quirks, see **[UPSTREAM_SYNC.md](./UPSTREAM_SYNC.md)**.

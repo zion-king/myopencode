@@ -18,6 +18,55 @@ files** (ours, conflict-free) from **upstream edits** (the rebase-sensitive surf
 
 ---
 
+## Upstream sync: `38e10eb` -> `95daf90` (dev) - 2026-09-13
+
+Merged 352 upstream commits (2026-08-08 -> 2026-09-11) into the fork. Merge commit `ead1b0d`
+on `integration/upstream`, strategy `ort`, **zero conflicts**.
+
+### Why conflict-free
+
+Pre-merge blob analysis confirmed upstream touched **none** of our three edit-site files
+(`file-tabs.tsx`, `i18n/en.ts`, `i18n/parity.test.ts` were byte-identical to our base), and
+all four semantic dependencies were intact (the `@opencode-ai/session-ui` `./*` export our
+`Markdown` import relies on survived). This is the P1-P3 discipline paying off: a 24-line
+upstream footprint isolated in files nobody else edits.
+
+### What we gained (headline)
+
+Predominantly reliability, not UI churn: network/streaming retry hardening, agent subagent
+error surfacing, provider fixes (Azure CLI auth, Cloudflare AI Gateway, Bedrock reasoning),
+v1/v2 database + config compatibility, and v2 app polish (session rename, archived-session
+handling, file-search-while-loading). ~99 of 352 commits were cloud-only (`console`/`stats`/
+`go`/`zen`) with no local effect. The `happy-dom` bump (#46675) targets the flaky unit test
+we had documented.
+
+### Re-verification at `95daf90` (packages/app)
+
+- typecheck: exit 0 (via `tsc -b` fallback; see below)
+- `test:unit`: 733 pass, 0 fail (was 727) - no flake this run
+- `test:browser`: 41 pass, 0 fail
+- policy tests: 9 pass; `session-ui/markdown` import resolves
+- portable build: `OpenCode Dev` now reports **v1.18.30** (merge bumped desktop version);
+  rewrite markers present in the freshly-built renderer bundle
+
+### Forced re-derivations / environment
+
+- **tsgo blocked by AppLocker.** `bun install` re-extracted `@typescript/native-preview`;
+  the native `tsgo.exe` is blocked by Windows Application Control (same policy class as the
+  NSIS installer). Validated types with `tsc -b` instead. Documented in `README.md`.
+- **`build-portable.ps1` fixed.** It previously ran only `electron-builder --dir`, packaging a
+  stale `out/`. It now runs `bun run build` (electron-vite) first so the package reflects
+  current source. Without this, the post-merge package would have shipped pre-merge code.
+- `bun.lock` restored after install (bun 1.4.0 pruned orphaned coverage-tooling entries;
+  irrelevant to `bun test`).
+
+### Deferred
+
+The 10 rewrites scoped in `rewrites/audit/001-desktop-developer-experience.md` remain
+scoped-only; each will land later as its own numbered spec against this stabilized base.
+
+---
+
 ## [001] Markdown file preview: 2026-08-30
 
 Status: **Verified** · Base: `38e10eb` · Spec: [specs/001-markdown-file-preview.md](./specs/001-markdown-file-preview.md)
