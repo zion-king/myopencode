@@ -29,10 +29,33 @@ line of implementation code is written:
 Draft and revised versions are both kept — the draft as a record of the initial (unverified) pass, the
 revision as the current source of truth.
 
+### Verification discipline
+
+Audit 001 needed two verification passes. The first caught two items that were wholly built already; the
+second, triggered when spec-writing exposed a wrong root cause, found that **9 of 13 items overstated the
+work** — most proposed building things that substantially already ship. These rules come from those
+failures and apply to every audit:
+
+1. **Ask "does this already exist?" before "how would we build it?"** Every item that survived contact
+   with the codebase got smaller. Assume the gap is narrower than it looks.
+2. **Search for the capability, not the identifier.** Audit 001 cited an `invoke_subagent` tool and a
+   `ConversationID` field that exist nowhere, while the real mechanism shipped under different names.
+   A failed grep for an invented name is not evidence of a missing feature.
+3. **"Traced to an exact line" ≠ "traced to the line that runs."** Verify which component is actually
+   *mounted on the route in question*. Audit 001's item 11 cited two real, correct line numbers in a
+   component that is never mounted on the screen being described.
+4. **A competitive feature list is a hypothesis generator, not evidence.** "Cursor has X" tells you
+   nothing about what this codebase already does.
+5. **Distrust diff estimates that cluster around a prior result.** Audit 001's original estimates all sat
+   near the one previously measured rewrite regardless of the proposed scope. Re-derive at spec time from
+   an actual sketch of the edit site.
+6. **Check whether the item is blocked before ranking it.** One item's UI half turned out to require
+   backend work upstream had deliberately deferred — that belongs in the ranking, not discovered mid-spec.
+
 ## Audit Inventory
 
 | ID | Title | Date | Focus Area | Status |
 |---|---|---|---|---|
-| [001](./001-desktop-developer-experience.md) | Desktop Developer Experience Audit & Scoped Rewrites | 2026-09-02 (revised 2026-09-13) | Desktop App DX & Parity with Claude Code | Revised & Prioritized |
+| [001](./001-desktop-developer-experience.md) | Desktop Developer Experience Audit & Scoped Rewrites | 2026-09-02 (swept 2026-09-13) | Desktop App DX & Parity with Claude Code | Verified & Re-prioritized |
 
 Drafts (pre-revision, kept for reference): [drafts/001](./drafts/001-desktop-developer-experience.md).

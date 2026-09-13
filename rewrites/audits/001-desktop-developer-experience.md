@@ -4,12 +4,12 @@
 | --- | --- |
 | Audit ID | 001 |
 | Title | Desktop Developer Experience Audit & Scoped Rewrites |
-| Date | 2026-09-02 (revised 2026-09-13) |
+| Date | 2026-09-02 (revised 2026-09-13; full verification sweep 2026-09-13) |
 | Upstream Base | `38e10eb1408feb700021b8e8766fb0ab41bf84e2` (`dev`) |
 | Release Near Base | `v1.18.15` |
 | Focus | Desktop Application (`packages/desktop`, `packages/app`, `packages/session-ui`) |
 | Competitive Baseline | Claude Code Desktop, Cursor Composer, Windsurf Cascade |
-| Status | Revised & Prioritized |
+| Status | Verified & Re-prioritized (all items swept; see §0) |
 | Draft | [drafts/001-desktop-developer-experience.md](./drafts/001-desktop-developer-experience.md) — original, unverified pass |
 
 ---
@@ -65,6 +65,44 @@ describe already exists.
   (no actual presence check). Worth folding into the eventual spec.
 - **Items 01, 02, 07, 10** — verified accurate as originally written. Item 07's citation of
   `menu.ts:22` (`if (process.platform !== "darwin") return`) is an exact match, including the line number.
+
+### Second pass — full verification sweep (2026-09-13)
+
+Writing the first spec (002, from item 12) exposed that **item 11's root cause was wrong** — caught only
+because spec-writing forced a trace of which component actually mounts on the route. That triggered a
+full re-verification sweep of every remaining item, checking each claimed gap against the shipping code
+with one question first: *does this already exist?*
+
+**Result: 9 of 13 items materially overstated the work.** The first revision pass (above) caught items
+that were wholly built (08, 09). This sweep found the more common failure: items where a **substantial
+part already ships** and the real delta is a fraction of what was scoped. The recurring error is
+describing a gap by comparison to a competitor's feature list rather than by inspection of what the app
+already does.
+
+| # | Original claim | Verified reality | Real remaining delta |
+| :---: | :--- | :--- | :--- |
+| **01** | No global summon; no overlay window | Correct — no `globalShortcut`, no frameless/always-on-top window in `packages/desktop`. But a full in-app command palette ships (`command-palette.ts`, default `mod+k,mod+shift+p`) | OS-level summon mechanism + overlay window. The prompt UI itself can likely reuse the palette |
+| **02** | "No real-time transparency" into context; client "hides [tokens] completely" | **Largely built.** `SessionContextUsage` (usage ring, %, cost, total tokens) and `SessionContextTab` ship a stats grid (limit, totalTokens, usage%, input/output/reasoning/cache), a **segmented itemized token bar**, the raw system prompt, and a per-message inspector with JSON export | Re-categorize the breakdown by *content type* (files/rules/tool schemas/diffs) instead of message role; per-file token weights; eviction/pinning controls |
+| **03** | Subagents render as "flattened linear chat bubbles"; no hierarchical representation | **False.** `Session.parentID` is a first-class graph; the `task` tool card shows agent name/color + live spinner and links into the child session's own transcript; parent/child breadcrumbs with click-to-navigate; covered by `e2e/regression/subagent-child-navigation.spec.ts` | A single-screen dock showing *several concurrent* subagents at once, with per-subagent cancel |
+| **04** | `apps.ts` has only "basic app detection"; no deep-link opening | **Directory-level open-in-app is fully productionized** — 13 apps (VS Code, Cursor, Zed, JetBrains-adjacent, terminals…), per-app existence checks, complete IPC path to `shell.openPath`/`execFile`, live in two UI locations | File-level and line/column targeting (no URI-scheme code exists at all); per-file UI entry points; real win32/linux detection (`checkAppExists` returns `true` unconditionally there) |
+| **05** | "No existing primitive (client or server) exposes per-step checkpoint state" — needs new state end to end | **False.** A built-in `plan` agent mode exists server-side (denies edit tools, `plan_exit`); `todowrite` persists ordered per-step status; `session-permission-dock.tsx` is a working mid-execution pause-and-ask gate; `session-revert-dock` + `Snapshot.Service` is a **working rewind-to-an-earlier-message** feature | Compose these four existing primitives into one plan dock with per-step controls. UI wiring, not new state |
+| **06** | Review panel is whole-file only; cannot comment on diff lines | **Inline diff commenting already works** — `session.tsx` wires `onLineComment` with `origin: "review"` straight from the diff panel into `addCommentToContext`. **Split view already ships** (`diffStyle` defaults to `"split"`) | Per-hunk accept/reject staging only. Two of the three proposed features already exist |
+| **07** | Notifications are "passive web popups"; tray unhandled | **Native OS notifications already ship** (real `Notification` API from both app and desktop renderer, focus-gated, click-to-focus). Tray genuinely absent; no badge/flash/progress APIs used | Notification **action buttons**; `Tray`; dock/taskbar badges. Not the notification mechanism itself |
+| **08** | No worktree lifecycle at all *(corrected in pass 1)* | Creation, per-worktree sidebar grouping, switching, rename, reset, and manual delete all ship. `worktreeRemove` fires only from the explicit "Delete workspace" action | **Automatic cleanup** on session archive/delete (small wiring). Merge-back/PR creation is genuinely absent but is a *new feature*, not cleanup UX — scope separately |
+| **09** | Terminal is single-instance *(corrected in pass 1)* | Multi-tab with drag-reorder ships. Split panes genuinely absent. **Process monitor is blocked**: `BackgroundJob` service exists in core but has **no HTTP endpoint**, and `tool/bash.ts:72-74` TODOs say exposure is deliberately deferred pending durability/restart/auth. PTYs expose no pid/cwd/exitCode | Split panes = unblocked UI work. Process monitor = **backend-dependent**, not a thin UI layer |
+| **10** | HTML/SVG/Mermaid/CSV render as raw text | **Image, SVG, and audio preview already ship** via `FileMedia`, dispatched by an existing `mediaKindFromPath()` extension-based type dispatcher. Mermaid is label-only (correct); no iframe sandbox (correct); no CSV/JSON table (correct) | Add `mermaid`, `html`, `csv`/`json` branches to the **existing** dispatcher — an extension, not a new preview system |
+| **11** | Two `params.id` gates hide the panel; toggle exists but is inert | **False for v2.** The v2 new-session screen is a separate page (`NewSessionPage`); neither `session.tsx` nor `SessionSidePanel` mounts there, and no toggle renders at all. See the corrected item below | A new file-browser surface + toggle on the draft page. Data plumbing already exists |
+| **12** | Side-panel floor is a hardcoded constant | Confirmed accurate; spec'd as [002](../specs/002-side-panel-min-width.md) | — (spec'd) |
+| **13** | Tool cards show a filename but clicking only expands | Correct that file cards aren't clickable — but `BasicTool`/`BasicToolV2` **already have an `onSubtitleClick` prop**, already used in production for `task`-card session navigation and by `ToolErrorCard` | Wire the existing prop for `read`/`edit`/`write`/`patch` and thread a callback via `useData()`. No new primitives |
+
+**Lessons, now encoded in [README.md](./README.md)'s process:**
+
+1. "Traced to an exact line" ≠ "traced to the line that actually runs" — verify which component is
+   *mounted on the route in question* (item 11).
+2. Search for the **capability**, not the identifier the audit invented (items 03, 05 cited names that do
+   not exist while the real mechanism shipped under another name).
+3. A competitive gap list is a hypothesis generator, not evidence. Every item here that survived contact
+   with the codebase got smaller.
 
 ### On diff-size estimates
 
@@ -181,6 +219,15 @@ Developers have no real-time transparency into what constitutes the LLM's active
 - **Cursor / Windsurf:** Visual context meter showing percentage usage of the model limit, with one-click pinning and eviction of specific files.
 
 #### Root Cause in OpenCode
+
+> **⚠ Corrected — see §0.** This item is **largely already built**. `SessionContextUsage` and
+> `SessionContextTab` already ship a token usage ring with %, cost and totals, a stats grid including the
+> model `limit`, a **segmented itemized token-usage bar**, the raw system prompt, and a per-message
+> inspector with JSON export. The "no transparency" framing below is false. The real delta is:
+> re-categorize the breakdown by *content type* (files / rules / tool & MCP schemas / diffs) rather than by
+> message role, add per-file token weights, and add eviction/pinning. Treat the proposal below as a
+> refinement of existing UI, not a new build.
+
 `packages/core/src/system-context/` exists (`index.ts`, `builtins.ts`, `registry.ts`) with real `SystemContext` machinery, and `packages/app/src/pages/session/composer/session-composer-controls.ts` exists — but no context-budget/token-inspector UI was found under `composer/`. Only aggregate message token metrics are shown or hidden.
 
 #### Proposed Solution & Architecture
@@ -213,7 +260,15 @@ OpenCode V2 supports parallel subagent dispatch via the `task` tool (`packages/o
 - **Claude Code Multi-Agent / Devin / AutoGen Studio:** Hierarchical DAG / execution tree displaying active agents, parent-child task relationships, live status pills (running, waiting, completed, failed), and step-by-step trace inspection.
 
 #### Root Cause in OpenCode
-Session messages are rendered by `MessageTimeline` in `packages/app/src/pages/session/timeline/` (`message-timeline.tsx`), which sorts items linearly by timestamp. There is no dedicated hierarchical representation for subagent dispatch. **Correction:** the original version of this item cited an `invoke_subagent` tool and `ConversationID` metadata field as the wiring mechanism — neither exists anywhere in the repository (verified by full-text search). The actual mechanism is the `task` tool; parent-child structure will need to be derived from `task` tool-call/result message pairs and the agent's `mode: "subagent"` concept, not from an invented metadata field. This changes the design of the policy module below and should be treated as open design work, not settled plumbing.
+> **⚠ Corrected twice — see §0.** The claim that subagents render as "flattened linear chat bubbles" with
+> no hierarchy is **false**. `Session.parentID` is a first-class server-side graph; the `task` tool card
+> renders the subagent's name, colour and a live spinner, and links straight into that child session's own
+> full transcript; parent/child breadcrumbs support click-to-navigate back; and
+> `e2e/regression/subagent-child-navigation.spec.ts` covers the flow. Hierarchy and navigation already
+> ship. The real delta is narrower: **a single-screen dock showing several concurrent subagents at once,
+> with per-subagent cancel.** The parent/child data model and per-agent status would be reused, not built.
+
+Session messages are rendered by `MessageTimeline` in `packages/app/src/pages/session/timeline/` (`message-timeline.tsx`), which sorts items linearly by timestamp. There is no dedicated hierarchical representation for subagent dispatch. **Correction (first pass):** the original version of this item cited an `invoke_subagent` tool and `ConversationID` metadata field as the wiring mechanism — neither exists anywhere in the repository (verified by full-text search). The actual mechanism is the `task` tool.
 
 #### Proposed Solution & Architecture
 1. Create a pure subagent tree policy: `packages/app/src/pages/session/composer/subagent-tree-policy.ts` that builds a parent-child execution graph from `task` tool call/result pairs (exact linkage mechanism to be determined during spec — see correction above).
@@ -240,6 +295,15 @@ Developers reviewing code, diffs, or generated files in OpenCode Desktop frequen
 - **GitHub Copilot & Cursor:** Seamless deep linking into editors via native URI schemes (`vscode://file/...`, `cursor://file/...`, `zed://file/...`) and CLI fallbacks (`code -g`, `cursor -g`, `zed`).
 
 #### Root Cause in OpenCode
+> **⚠ Corrected — see §0.** "Open in external app" is **already fully productionized at the directory
+> level**: `useOpenInApp` / `OpenInAppV2` support ~13 apps (VS Code, Cursor, Zed, Sublime, terminals,
+> Xcode, Android Studio…) with per-app existence checks and a complete IPC path
+> (renderer → `platform.openPath` → `window.api.openPath` → `ipcMain.handle("open-path")` →
+> `shell.openPath` / `execFile`), live in two UI locations including the session header. The real delta is
+> narrower than "build editor integration": **(1)** file-level and line/column targeting — the pipeline
+> only ever passes a *directory*, and no URI-scheme code exists anywhere; **(2)** per-file UI entry points
+> in the file tab and review panel; **(3)** real win32/linux app detection.
+
 `packages/desktop/src/main/apps.ts` has `checkAppExists` (confirmed, line 13) — but it is thinner than the original write-up implied: on `win32` and `linux` it unconditionally `return true` with no real presence check; only the macOS branch (`checkMacosApp`) does real `/Applications` + `which` detection. `file-tabs.tsx` and `review-tab.tsx` lack UI buttons to trigger external editor opening (confirmed), and no `vscode://`/URI-scheme code exists anywhere in the repo.
 
 #### Proposed Solution & Architecture
@@ -275,7 +339,15 @@ When an agent creates an implementation plan (e.g. in `implementation_plan.md` o
 - **Cursor Composer Agent:** Interactive checklist nodes that can be toggled, re-run, or resumed from specific checkpoints.
 
 #### Root Cause in OpenCode
-`session-todo-dock.tsx` (`packages/app/src/pages/session/composer/session-todo-dock.tsx`) is confirmed minimal: a done/total progress counter and a pointer to the current todo, with no checkpoint/pause/rewind logic. **Correction:** the original cited `session_input` with `followup: "steer" | "queue"` as the underlying mechanism for step control. That setting is real (`context/settings.tsx`), but it is a **global** preference for how any queued follow-up message is delivered while the agent is busy — unrelated to plan steps. There is no existing client- or server-side primitive for per-step checkpoints; this item requires new state end-to-end, not just new UI wired to an existing signal.
+> **⚠ Corrected twice — see §0.** The first-pass conclusion below ("requires new state end-to-end") is
+> **wrong**. Four working primitives already exist and would be composed, not invented:
+> a built-in **`plan` agent mode** server-side (denies edit tools, exposes `plan_exit`); **`todowrite`**
+> persisting ordered per-step status; **`session-permission-dock.tsx`**, a real mid-execution
+> pause-and-ask-the-user gate; and **`session-revert-dock` + `Snapshot.Service`**, a working
+> rewind-to-an-earlier-message feature backed by git snapshots. The real delta is composing these into one
+> plan dock with per-step controls — UI wiring over existing state.
+
+`session-todo-dock.tsx` (`packages/app/src/pages/session/composer/session-todo-dock.tsx`) is confirmed minimal: a done/total progress counter and a pointer to the current todo, with no checkpoint/pause/rewind logic. **Correction (first pass):** the original cited `session_input` with `followup: "steer" | "queue"` as the underlying mechanism for step control. That setting is real (`context/settings.tsx`), but it is a **global** preference for how any queued follow-up message is delivered while the agent is busy — unrelated to plan steps.
 
 #### Proposed Solution & Architecture
 1. Create a pure plan parser and checkpoint state machine: `packages/app/src/pages/session/composer/plan-checkpoint-policy.ts`.
@@ -307,6 +379,13 @@ The review panel (`packages/app/src/pages/session/v2/review-panel-v2.tsx` / `pac
 - **GitHub PR Review & Cursor:** Side-by-side split diffs, granular hunk staging, and inline line commenting.
 
 #### Root Cause in OpenCode
+> **⚠ Corrected — see §0. Two of this item's three proposed features already ship.**
+> **Inline diff commenting already works**, in the review panel specifically: `session.tsx` wires
+> `onLineComment` with `origin: "review"` directly from the diff panel into `addCommentToContext`, which
+> feeds the agent's prompt context — the same pipeline the file viewer uses (`origin: "file"`).
+> **Split/side-by-side view already ships** — `layout.review.diffStyle()` defaults to `"split"`.
+> The only genuine gap is **per-hunk accept/reject staging**. Scope this item to that alone.
+
 The Pierre file component (`packages/session-ui/src/components/file.tsx`) renders diffs. `session-diff.ts` already parses unified diffs into `hunks` with partial-hunk detection (confirmed, ~L80-131) — so hunk-level parsing is not the gap. The gap is that the parent review controller only dispatches whole-file revert/apply actions: `session-revert-dock.tsx` (confirmed at `packages/app/src/pages/session/composer/session-revert-dock.tsx`, not directly under `session/`) exposes only a whole-file/whole-session "restore" action, with no hunk concept.
 
 #### Proposed Solution & Architecture
@@ -334,7 +413,15 @@ The Pierre file component (`packages/session-ui/src/components/file.tsx`) render
 #### Problem
 When OpenCode Desktop executes long operations (large test suites, multi-step subagents, complex refactors), minimizing the window leaves the developer with no visual progress indicator. In addition:
 - `packages/desktop/src/main/menu.ts:22` explicitly disables native menus on Windows and Linux (`if (process.platform !== "darwin") return`) — **verified exact match, including line number.**
-- Notifications in `packages/app/src/context/notification.tsx` are passive web popups without actionable response buttons — **verified: only `TurnCompleteNotification` and `ErrorNotification` are modeled, no action-button concept.**
+- Notifications in `packages/app/src/context/notification.tsx` lack actionable response buttons.
+
+> **⚠ Corrected — see §0.** The characterisation of notifications as "passive web popups" is **wrong**:
+> **native OS notifications already ship**, wired end to end from `notification.tsx` through
+> `platform.notify(...)` to a real `Notification` API call in both the app and desktop renderer, gated on
+> window focus, with click-to-focus. What is missing is **action buttons** on those notifications — plus
+> the `Tray` and dock/taskbar badges, which are genuinely absent (no `setBadgeCount`, `flashFrame`,
+> `setOverlayIcon`, or `setProgressBar` anywhere). Scope this item to tray + badges + notification
+> actions, not to building notifications.
 
 #### Competitive Benchmark
 - **Claude Code Desktop:** Background daemon with system tray icon showing agent activity state, and native OS notifications with action buttons (e.g. "Approve Shell Command", "View Diff", "Dismiss").
@@ -371,10 +458,24 @@ The original framing ("all sessions operate on the same working copy; no automat
 
 Git worktree session isolation is a real, shipped, first-class OpenCode feature today. There is no rewrite to do here at the level the original item described.
 
-#### What might still be missing (needs its own root-cause pass before scoping)
-- Does anything call `Git.worktree.remove` automatically when a worktree-backed session is archived, or does the worktree leak until manually cleaned up?
-- Is there a "merge this worktree's branch into main" or "open a PR from this worktree" action anywhere in the UI, or does the user have to drop to a terminal for that?
-- Is worktree creation exposed anywhere in the sidebar/project settings beyond new-session time (e.g., converting an existing session to a worktree after the fact)?
+#### What is still missing — answered by the §0 sweep
+
+- **Automatic cleanup — the one real gap.** `worktreeRemove` fires only from the explicit "Delete
+  workspace" action in the sidebar (`sidebar-workspace.tsx` → `deleteWorkspace` in `layout.tsx`).
+  `session-archive.ts` contains no worktree handling at all, so archiving or closing every session in a
+  worktree leaves the worktree in place indefinitely. Closing this is small wiring against an existing
+  API — call it from the archive/delete flow, or add a "prune unused worktrees" affordance.
+- **Merge-back — genuinely absent, but a new feature.** There is no commit, push, merge, rebase or
+  PR-creation path anywhere in the app; the entire git *write* surface exposed to the UI is worktree
+  create / remove / reset. That makes merge-back a net-new capability rather than a cleanup-UX gap, so it
+  is tracked separately as **08b** in the priority matrix and should not be folded into this item.
+- **Conversion — not supported.** Worktree vs. not is fixed at session-creation time; there is no
+  "move this session into a worktree" action. Low value relative to cost; not pursued.
+- **Visibility and switching — already solid, nothing to do.** `sidebar-workspace.tsx` groups sessions by
+  worktree with the branch name, expand/collapse, and per-worktree rename / reset / delete actions;
+  selecting one switches directory context.
+
+**Scope of item 08: automatic cleanup only.**
 
 #### Proposed Solution & Architecture
 Not scoped yet — **do not carry forward the original architecture** (`packages/core/src/workspace/worktree-manager.ts`, `worktree-policy.ts`, a new `worktree-switcher.tsx`), since it would duplicate the existing `Git.worktree` service and `worktree.ts` state tracker. Once the three questions above are answered, scope narrowly against whichever answer is "no."
@@ -399,7 +500,20 @@ The genuinely missing pieces, confirmed absent from `terminal-panel-v2.tsx`:
 #### Proposed Solution & Architecture
 1. Layer a split-pane container onto the existing tab system rather than replacing it: `packages/app/src/pages/session/terminal/terminal-split-layout.ts` (pure layout policy — which tabs occupy which pane).
 2. Extend `terminal-panel-v2.tsx` with a split-toggle action that renders two (or more) tab groups side by side, reusing the existing per-tab `pty` plumbing unchanged.
-3. Build a process-inspector drawer: `packages/app/src/pages/session/terminal/process-inspector.tsx`, sourced from whatever background-task/process registry the server already exposes (needs a lookup — if none exists server-side, this item's server dependency needs its own scoping pass before a client-only spec can be written).
+3. ~~Build a process-inspector drawer sourced from the server's background-task registry.~~
+   **Blocked — split out as item 09b.** The §0 sweep resolved the open dependency: a `BackgroundJob`
+   service does exist in `packages/core/src/background-job.ts` (list/get/start/extend/wait/cancel, with
+   per-job status and output), but **nothing exposes it** — there is no HTTP endpoint and no client
+   consumer. `packages/core/src/tool/bash.ts:72-74` carries explicit TODOs stating that HTTP observation
+   of background jobs is deliberately deferred until durable status, restart recovery and authorization
+   are designed. Separately, the PTY model (`context/terminal.tsx`) exposes only
+   `{ id, title, titleNumber, rows, cols, buffer, scrollY, cursor }` — **no pid, cwd, status or exit
+   code** — so even terminal-level process data is unavailable client-side today.
+   A process monitor is therefore **not** a thin read-only UI layer; it requires upstream backend work
+   that upstream has consciously postponed. Do not spec it as a UI feature.
+
+**Scope of item 09: split panes only** (unblocked, pure UI). The process monitor is tracked as **09b**,
+blocked.
 
 #### Upstream Diff & File Surface
 - **New Files:**
@@ -419,6 +533,16 @@ Following Rewrite 001 (Markdown file preview), OpenCode still renders HTML proto
 - **Claude Artifacts / v0 / ChatGPT Canvas:** Live interactive sandboxed iframe rendering for HTML/CSS/JS, interactive pan/zoom SVG visualizer, rendered Mermaid diagrams, and formatted JSON/CSV data table viewers.
 
 #### Root Cause in OpenCode
+> **⚠ Corrected — see §0. A file-type dispatcher already exists, and several formats already preview.**
+> `FileMedia` (`packages/session-ui/src/components/file-media.tsx`) already renders **images** (`<img>`
+> from a data URL), **SVGs** (rendered, with a toggle back to source), and **audio** (`<audio>`), plus a
+> distinct binary-file placeholder — dispatched by `mediaKindFromPath()`
+> (`packages/session-ui/src/pierre/media.ts`), an extension-based type dispatcher wired into `file.tsx`
+> and `file-tabs.tsx`. So this is an **extension of existing infrastructure**, not a new preview system.
+> The genuine gaps the sweep confirmed: mermaid renders as labelled syntax-highlighted text only (no
+> diagram is drawn), there is **no iframe/sandbox anywhere** in the app, and there is no CSV/JSON table
+> viewer. Scope this as three new `MediaKind` branches on the existing dispatcher.
+
 `packages/session-ui/src/components/file.tsx` and `packages/app/src/pages/session/file-tabs.tsx` only branch to Markdown (via Rewrite 001) or the Pierre syntax highlighter. There is no pluggable preview dispatcher for rich MIME types and artifacts in the file-tab path.
 
 #### Proposed Solution & Architecture
@@ -453,48 +577,88 @@ On the new-session screen (no session created yet), there is no way to open the 
 to inspect project files before sending the first message. The developer has to send a message (creating a
 session) just to be able to browse the project.
 
-#### Root Cause in OpenCode
-Two independent gates conspire to hide the panel specifically pre-session, in the v2 layout
-(`settings.general.newLayoutDesigns()`):
+#### Root Cause in OpenCode — corrected 2026-09-13
 
-1. `packages/app/src/pages/session/session-side-panel.tsx:291` —
-   `<Show when={isDesktop() && !(settings.general.newLayoutDesigns() && !params.id)}>` — the entire
-   `SessionSidePanel` is unmounted whenever new-layout-designs is on and no session id exists yet.
-2. `packages/app/src/pages/session.tsx:451` —
-   `const desktopV2ReviewOpen = createMemo(() => newSessionDesign() && desktopReviewOpen() && !!params.id)`
-   — even if a user could reach the toggle, this memo hard-requires `params.id`, so the panel stays closed
-   regardless of toggle state pre-session.
-3. The only visible toggle in this state, `SessionHeaderV2Actions` (`packages/app/src/components/session/session-header.tsx:510-568`),
-   renders a single "review" icon button (`sidebar-right`) gated on `reviewVisible: isDesktop()` — it calls
-   `view().reviewPanel.toggle()`, which is a no-op in effect because of gate 2 above. There is also no
-   separate file-tree-only toggle in the v2 actions bar (unlike the v1 fallback branch in the same file,
-   which has both a review button and a file-tree button).
+> **The original root cause for this item was wrong.** It claimed two `params.id` gates
+> (`session.tsx:451`, `session-side-panel.tsx:291`) hide the panel pre-session, and that the top-right
+> toggle exists but is silently defeated by them. Neither holds for the v2 layout. Both statements
+> describe the **legacy v1** no-id path. The corrected analysis follows.
 
-So this isn't a missing feature so much as an existing toggle that is silently defeated by a `!!params.id`
-guard once new-layout-designs is active.
+In the v2 layout the new-session screen is a **different page entirely**. `packages/app/src/app.tsx:94-95`
+states it outright:
 
-#### Proposed Solution & Architecture
-1. Relax the `!!params.id` requirement in `desktopV2ReviewOpen` (`session.tsx:451`) so the panel can open
-   pre-session — the panel itself (`SessionSidePanel`) already tolerates an unset `params.id` in its file
-   browser tab (it operates on `sdk().directory` / `projectDirectory`, not session state), so this looks
-   like a leftover guard rather than a load-bearing one. Verify in the spec whether any nested state assumes
-   a session exists (e.g., `reviewDiffs`/`canReview`) and gate only those, not panel visibility itself.
-2. Adjust the `Show` gate in `session-side-panel.tsx:291` to match (drop the `&& !params.id` clause, keeping
-   the `isDesktop()` check).
-3. Add a file-tree toggle to `SessionHeaderV2Actions` alongside the existing review toggle, mirroring the
-   v1 fallback branch's pair of buttons, so a user can open the file browser specifically (not just review)
-   before a session exists.
-4. Extract the "is the toggle usable pre-session" predicate into a small `-policy.ts` module so it's
-   unit-testable without mounting `session.tsx`.
+> "When the new layout is enabled, the legacy new-session route (`/:dir/session` with no id) is replaced
+> by a draft at `/new-session?draftId=…`"
+
+That draft route resolves to `NewSessionPage` (`packages/app/src/pages/new-session.tsx`, 49 lines) —
+described in its own docblock as "The draft-only V2 session page. Submitting promotes the draft into a real
+session." Consequently:
+
+- **`session.tsx` and `SessionSidePanel` are never mounted on this route.** The two `params.id` gates cited
+  originally are therefore irrelevant to the screen the user is actually looking at; they guard the v1
+  path where `SessionPage` renders without an id.
+- **There is no side-panel toggle on this screen at all.** `NewSessionPage` mounts only
+  `<NewSessionStatus mount={rightMount} …/>` into the titlebar right mount (`new-session.tsx:43`) and
+  `<NewSessionView …/>` in the body. There is no panel row, no `ResizeHandle`, no side panel, and no
+  review/file-tree toggle. The earlier claim that "the toggle exists but is inert" is wrong — nothing
+  renders it.
+
+So this is a genuinely missing surface, not a gate flip.
+
+#### Feasibility — the capability already exists, only the UI surface is missing
+
+Everything a pre-session file browser needs is already provided on the draft route:
+
+- `ResolvedDraftRoute` (`app.tsx:209-229`) wraps the page in `ServerSDKProvider`, `ServerSyncProvider`,
+  `ModelsProvider`, `SDKProvider directory={…}`, and `DirectoryDataProvider`.
+- `DraftProviders` (`app.tsx:383-391`) includes **`FileProvider`**, plus `PromptProvider` and
+  `CommentsProvider`. So `useFile()` — the file tree and content loader — is already in scope.
+- File state is **directory-scoped, not session-scoped**: `context/file.tsx:66` (`scope = sdk().directory`),
+  content cached by `${directory}\n${file}` (L171-172), listings sent with
+  `location: { directory: sdk().directory }` (L210).
+- `SessionRouteKey.fromRoute(dir, sessionID?)` (`utils/server-scope.ts:30-32`) explicitly tolerates an
+  undefined session id and yields a directory-only key. `useSessionLayout` (`session-layout.ts:20-30`) is a
+  plain hook, not a context provider, so it works on this route — and it already exposes a directory-only
+  `workspaceKey` (L15) intended for exactly this cross/pre-session case.
+- `canReview` is project-scoped (`session.tsx:536`, `!!sync().project`), not session-scoped.
+
+Nothing needs new server work or new state plumbing. What is missing is purely the rendered surface.
+
+#### Proposed Solution & Architecture — rescoped
+
+Add a file-browser surface and its toggle to the draft page. Because the page is a single-column composer
+today, this is net-new UI rather than a gate flip — but it stays cheap because all the data plumbing
+already exists (see Feasibility) and the host file is small.
+
+1. Build a self-contained pre-session file browser component (new file, e.g.
+   `packages/app/src/pages/new-session/new-session-file-panel.tsx`) that composes the existing
+   `@/components/file-tree` against `useFile()`, which is already directory-scoped and already provided on
+   this route.
+2. Add its open/closed state as a pure, testable policy module (new file), keyed by the existing
+   directory-only `workspaceKey` from `useSessionLayout()` so the choice persists across drafts in the same
+   project without inventing new state.
+3. Mount a toggle into the titlebar right mount beside the existing `NewSessionStatus`
+   (`new-session.tsx:43`), reusing the same `IconButtonV2` + `TooltipV2` pattern as
+   `SessionHeaderV2Actions` so it reads as native.
+4. Decide the viewer surface — **the main open design question.** Pre-session there are no file tabs, so
+   "inspect a file" needs a target. Options to resolve at spec time, cheapest first:
+   a. Tree-only (browse and open externally / into a session on submit) — smallest, may not satisfy "inspect".
+   b. Tree + a single read-only preview pane reusing the existing `FileMedia`/pierre viewer.
+   c. Reuse the full `SessionSidePanel` — it calls only hooks that work on this route, but it also carries
+      review/diff/tab machinery that is meaningless pre-session. Likely too heavy, but worth a look since
+      it would maximise reuse and consistency.
 
 #### Upstream Diff & File Surface
 - **New Files:**
-  - `packages/app/src/pages/session/session-panel-visibility-policy.ts` (new — the pre-session-visibility predicate + tests, ~30 lines + tests)
-- **Upstream Hooks:**
-  - `packages/app/src/pages/session.tsx` (~L451, ~L2304-2322 — relax the `params.id` gate; likely +3/-2)
-  - `packages/app/src/pages/session/session-side-panel.tsx` (~L291 — drop one clause from the `Show` condition; +1/-1)
-  - `packages/app/src/components/session/session-header.tsx` (~L510-568 — add a file-tree toggle button to `SessionHeaderV2Actions`; +10/-1)
-- **Estimated Upstream Diff:** `+14/-4` (rough, pending a spec-time sketch; smaller in scope than any §3 item — no new subsystem, only gate/wiring changes).
+  - `packages/app/src/pages/new-session/new-session-file-panel.tsx` (the panel; size depends on option 4a/b/c)
+  - `packages/app/src/pages/new-session/new-session-file-panel-policy.ts` (+ tests — open/closed state, keyed by `workspaceKey`)
+- **Upstream Hook:**
+  - `packages/app/src/pages/new-session.tsx` (49 lines, low churn — mount the toggle into `rightMount` and
+    the panel beside `NewSessionView`; a handful of lines, and a good P2 target precisely because the file
+    is small and rarely edited)
+- **Estimated Upstream Diff:** small in *upstream lines* (likely under 15, in one quiet file), but
+  materially more **new-file work** than the original `+14/-4` implied — this is a new surface, not a gate
+  flip. Do not treat the old estimate as a commitment; re-derive when option 4 is settled.
 
 ---
 
@@ -552,9 +716,17 @@ open that file in the side panel for a proper preview. The developer has to manu
 file via the file tree instead of clicking straight through from where the agent already referenced it.
 
 #### Root Cause in OpenCode
+> **⚠ Corrected — see §0. The mechanism already exists.** `BasicTool` and `BasicToolV2` already expose an
+> **`onSubtitleClick` prop**, and it is already used in production — the `task` tool card uses it to
+> navigate into a child session, and `ToolErrorCard` reuses the same pattern. So this item does **not**
+> need new interaction primitives or new props; it needs the existing prop wired up for the
+> `read`/`edit`/`write`/`patch` tool cards, with a callback threaded from `session.tsx` (where `useFile()`
+> and the tab-open API already live, in the same scope as the timeline mount) down through the
+> `useData()` context — the identical path `navigateToSession` already takes.
+
 - `packages/session-ui/src/components/basic-tool.tsx` and its v2 counterpart
-  `packages/session-ui/src/v2/components/basic-tool-v2.tsx` render generic tool-call cards; their only
-  `onClick` handler is `onTriggerClick`, which toggles the card's expand/collapse state.
+  `packages/session-ui/src/v2/components/basic-tool-v2.tsx` render generic tool-call cards; the file-path
+  subtitle has no click wiring today (the card's own `onTriggerClick` only toggles expand/collapse).
 - `packages/session-ui/src/components/message-part.tsx` — `getToolInfo()` (~L469-540) computes a
   `subtitle: getFilename(input.filePath)` for file-touching tools (read/edit/write/etc.), so the filename is
   already displayed, but no click handler or callback prop exists anywhere in this file to act on it.
@@ -593,25 +765,32 @@ file via the file tree instead of clicking straight through from where the agent
 
 To maximize developer velocity and maintain low maintenance overhead, the items are ranked by **DX Impact**, **Upstream Diff Surface**, and **Architectural Risk**. Diff-surface figures for items still marked "unverified estimate" in §0/§3 should be re-derived at spec time, not taken at face value.
 
-| Rank | Rewrite ID & Title | DX Impact | Upstream Diff | Risk / Complexity | Recommended Phase |
-| :---: | :--- | :---: | :---: | :---: | :---: |
-| **1** | **12 — Lower Side-Panel Minimum Width** | High | ~19 lines, 1 file | Low | **Phase 1 (Immediate)** |
-| **2** | **11 — Open Side Panel on New-Session Screens** | High | ~18 lines, 3 files | Low | **Phase 1 (Immediate)** |
-| **3** | **01 — Global Quick-Prompt HUD** | Critical | ~3 lines (unverified) | Low | **Phase 1 (Immediate)** |
-| **4** | **13 — Click-to-Preview File Cards** | High | ~24 lines, 4 files | Low | **Phase 1 (Immediate)** |
-| **5** | **04 — Deep "Open in External IDE"** | High | ~10 lines (unverified) | Low | **Phase 1 (Immediate)** |
-| **6** | **02 — Context Window Inspector** | High | ~4 lines (unverified) | Low | **Phase 1 (Immediate)** |
-| **7** | **10 — Rich Artifact & Preview Sandbox** | High | ~5 lines (unverified) | Low | **Phase 1 (Immediate)** |
-| **8** | **05 — Interactive Plan Mode & Checkpoints** | Critical | unverified, likely underestimated (no existing checkpoint primitive) | Medium-High | **Phase 2 (Core DX)** |
-| **9** | **06 — Granular Hunk Staging & Diff Comments** | High | ~10 lines (unverified) | Medium | **Phase 2 (Core DX)** |
-| **10** | **03 — Subagent Tree / DAG Visualizer** | High | ~6 lines (unverified) | Medium | **Phase 2 (Core DX)** |
-| **11** | **07 — System Tray & Actionable Notifications** | Medium | ~13 lines (unverified) | Medium | **Phase 2 (Core DX)** |
-| **12** | **08 — Git Worktree Merge/Cleanup UX** | Unknown until re-scoped | not yet estimable | Unknown | **Needs re-scoping pass before phasing** |
-| **13** | **09 — Terminal Split Panes & Process Monitor** | Medium | not yet estimable | Medium | **Phase 3, pending server-side data-source confirmation** |
+**Re-ranked 2026-09-13 after the §0 verification sweep.** The previous ranking was built on the original
+scope estimates, most of which the sweep invalidated. Items whose groundwork already ships moved up
+(smaller, lower-risk); items needing new surfaces or backend work moved down.
 
-Items 11-13 (§3a) were placed ahead of most of §3 because they are the narrowest in scope (single existing
-surface, no new subsystem) and their root causes are traced to exact lines rather than estimated — the
-lowest-risk, fastest-to-spec items in the whole backlog.
+| Rank | Rewrite ID & Title | DX Impact | Real remaining work | Risk / Complexity | Recommended Phase |
+| :---: | :--- | :---: | :--- | :---: | :---: |
+| **1** | **12 — Lower Side-Panel Minimum Width** | High | `+2/-2`, one file | Low | **Spec'd — [002](../specs/002-side-panel-min-width.md)** |
+| **2** | **13 — Click-to-Preview File Cards** | High | Wire the existing `onSubtitleClick` prop for file tools + thread one callback | Low | **Phase 1 (Immediate)** |
+| **3** | **10 — Rich Artifact & Preview Sandbox** | High | 3 new branches on the existing `mediaKindFromPath` dispatcher | Low-Medium | **Phase 1 (Immediate)** |
+| **4** | **08 — Worktree auto-cleanup** | Medium | Call the existing `worktreeRemove` from archive/delete flows | Low | **Phase 1 (Immediate)** |
+| **5** | **04 — Open in External IDE at file/line** | High | File+line URI/CLI targeting, per-file entry points, real win32/linux detection | Low-Medium | **Phase 1 (Immediate)** |
+| **6** | **06 — Per-hunk staging** | High | Hunk accept/reject only — commenting and split view already ship | Medium | **Phase 2 (Core DX)** |
+| **7** | **02 — Context breakdown by content type** | Medium | Re-categorize existing breakdown; per-file weights; eviction | Medium | **Phase 2 (Core DX)** |
+| **8** | **09a — Terminal split panes** | Medium | Pure UI; unblocked | Medium | **Phase 2 (Core DX)** |
+| **9** | **07 — Tray, badges & notification actions** | Medium | Tray + badges + action buttons (native notifications already ship) | Medium | **Phase 2 (Core DX)** |
+| **10** | **05 — Plan dock** | Critical | Compose four existing primitives into one per-step UI | Medium | **Phase 2 (Core DX)** |
+| **11** | **03 — Concurrent subagent dock** | Medium | Multi-subagent view + per-agent cancel (navigation already ships) | Medium | **Phase 3** |
+| **12** | **11 — Pre-session file browser** | High | A new panel surface + toggle on the draft page | Medium | **Phase 3** |
+| **13** | **01 — Global Quick-Prompt HUD** | Critical | New overlay window + OS-level summon; UI may reuse the command palette | Medium-High | **Phase 3** |
+| **—** | **09b — Background process monitor** | Medium | **Blocked** — needs an HTTP surface for `BackgroundJob` plus pid/cwd/exit on PTYs; upstream deliberately deferred this | High | **Blocked on backend** |
+| **—** | **08b — Worktree merge-back / PR creation** | Medium | Genuinely unbuilt; a new feature, not cleanup UX | Medium-High | **Scope separately** |
+
+Item 12 led because it was the only item whose root cause survived verification unchanged. Items 13, 10, 08
+and 04 now rank high for the same reason in reverse: the sweep showed most of their machinery already
+ships, so the remaining work is small and well-understood. Items 11, 01 and 03 fell because they need new
+surfaces rather than wiring. 09b is explicitly blocked and should not be spec'd as a UI feature.
 
 ---
 
