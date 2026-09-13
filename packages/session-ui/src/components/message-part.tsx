@@ -31,11 +31,13 @@ import {
   QuestionAnswer,
   QuestionInfo,
 } from "@opencode-ai/sdk/v2"
-import { useData } from "../context"
+import { useData, useFileOpenOptional } from "../context"
 import { useFileComponent } from "@opencode-ai/ui/context/file"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { type UiI18n, useI18n } from "@opencode-ai/ui/context/i18n"
 import { BasicTool, GenericTool } from "./basic-tool"
+import { ClickableFilename } from "./clickable-filename"
+import { openableFilePath } from "./tool-file-path-policy"
 import { Accordion } from "@opencode-ai/ui/accordion"
 import { StickyAccordionHeader } from "@opencode-ai/ui/sticky-accordion-header"
 import { Collapsible } from "@opencode-ai/ui/collapsible"
@@ -1778,6 +1780,7 @@ ToolRegistry.register({
   render(props) {
     const data = useData()
     const i18n = useI18n()
+    const onOpen = useFileOpenOptional()
     const args: string[] = []
     if (props.input.offset) args.push("offset=" + props.input.offset)
     if (props.input.limit) args.push("limit=" + props.input.limit)
@@ -1797,6 +1800,11 @@ ToolRegistry.register({
             subtitle: props.input.filePath ? getFilename(props.input.filePath) : "",
             args,
           }}
+          onSubtitleClick={
+            onOpen && openableFilePath("read", props.input)
+              ? () => onOpen(openableFilePath("read", props.input)!)
+              : undefined
+          }
         />
         <For each={loaded()}>
           {(filepath) => (
@@ -2214,7 +2222,7 @@ ToolRegistry.register({
                     <TextShimmer text={i18n.t("ui.messagePart.title.edit")} active={pending()} />
                   </span>
                   <Show when={!pending()}>
-                    <span data-slot="message-part-title-filename">{filename()}</span>
+                    <ClickableFilename path={openableFilePath("edit", props.input)}>{filename()}</ClickableFilename>
                   </Show>
                 </div>
                 <Show when={!pending() && props.input.filePath?.includes("/")}>
@@ -2281,7 +2289,7 @@ ToolRegistry.register({
                     <TextShimmer text={i18n.t("ui.messagePart.title.write")} active={pending()} />
                   </span>
                   <Show when={!pending()}>
-                    <span data-slot="message-part-title-filename">{filename()}</span>
+                    <ClickableFilename path={openableFilePath("write", props.input)}>{filename()}</ClickableFilename>
                   </Show>
                 </div>
                 <Show when={!pending() && props.input.filePath?.includes("/")}>

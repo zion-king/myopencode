@@ -1,10 +1,10 @@
 # 002 — Side panel minimum width
 
-| Field         | Value                                                        |
-| ------------- | ------------------------------------------------------------ |
-| Status        | Implemented — automated checks pass, manual verification pending |
+| Field         | Value                                                         |
+| ------------- | ------------------------------------------------------------- |
+| Status        | Implemented — automated checks pass                           |
 | Branch        | `rewrite/002-side-panel-min-width`                            |
-| Upstream base | `95daf90670b7c039c436c85537da5fbfe2205b41` (`dev`, 2026-09-11) |
+| Upstream base | `95daf90670b7c039c436c85537da5fbfe2205b41` (`dev`, 2026-09-11)|
 | Release near base | `v1.18.30`                                                |
 | Date          | 2026-09-13                                                    |
 | Audit item    | [audits/001](../audits/001-desktop-developer-experience.md) §3a, Rewrite 12 |

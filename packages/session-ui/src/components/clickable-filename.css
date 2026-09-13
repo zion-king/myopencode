@@ -1,0 +1,9 @@
+[data-slot="message-part-title-filename"].clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--v2-text-text-muted);
+  }
+}

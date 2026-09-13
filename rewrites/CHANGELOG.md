@@ -67,6 +67,81 @@ scoped-only; each will land later as its own numbered spec against this stabiliz
 
 ---
 
+## [003] Clickable file cards in the chat timeline: 2026-09-13
+
+Status: **Implemented** — automated checks pass; manual verification pending · Base:
+`95daf90` · Spec: [specs/003-clickable-file-cards.md](./specs/003-clickable-file-cards.md) ·
+Plan: [plans/003-clickable-file-cards.md](./plans/003-clickable-file-cards.md)
+
+Clicking the file name on a `read`, `edit`, or `write` tool card in the chat timeline now
+opens that file in the session side panel, in preview — reusing upstream's own
+designed-but-previously-unused `onSubtitleClick` affordance (`read`) and a fork-owned
+element swap (`edit`/`write`, whose filename lives in custom JSX rather than an object
+trigger).
+
+### Added (new files)
+
+- `packages/session-ui/src/context/file-open.tsx`: optional, non-throwing open-file
+  callback context (deliberately not `createSimpleContext`, which throws with no provider).
+- `packages/session-ui/src/components/clickable-filename.tsx`: renders the
+  `message-part-title-filename` slot as a single element with a click target; a plain
+  `<span>` when no provider is mounted.
+- `packages/session-ui/src/components/clickable-filename.css`: `.clickable` affordance
+  mirroring `basic-tool.css`'s existing subtitle treatment, so `read` and `edit`/`write`
+  look identical (R5).
+- `packages/session-ui/src/components/tool-file-path-policy.ts` +
+  `tool-file-path-policy.test.ts`: pure `openableFilePath(tool, input)`, 7 tests.
+
+### Changed (upstream edits, rebase-sensitive)
+
+- `packages/session-ui/src/components/message-part.tsx` (+11/-3): three imports;
+  `onSubtitleClick` wired on the `read` trigger; `edit`/`write` filename spans swapped
+  one-for-one for `ClickableFilename` (`data-slot` preserved, nothing re-indented).
+- `packages/app/src/pages/session.tsx` (+14): new `previewFile` handler (sibling of the
+  existing `openReviewFile`, but opens a preview/temporary tab); `FileOpenProvider` mounted
+  around `MessageTimeline`.
+- `packages/session-ui/src/context/index.ts` (+1): export the new context.
+- `packages/session-ui/src/styles/index.css` (+1): register the new stylesheet.
+
+`basic-tool.tsx` / `basic-tool-v2.tsx` — the components that already declare
+`onSubtitleClick` — are untouched, per P5's reasoning in the spec (v2 has no production
+consumer yet, so only the live v1 path was wired).
+
+Total upstream footprint: **27 insertions, 3 deletions across 4 files.**
+
+### Requirements delivered
+
+- **R1** click-to-preview on `read`/`edit`/`write`.
+- **R2** path resolution isolated in `tool-file-path-policy.ts`, DOM-free, 7 tests.
+- **R3** non-file tools (`list`, `grep`, `bash`, `patch`, …) unaffected — confirmed by
+  `openableFilePath` only recognizing `read`/`edit`/`write`.
+- **R4** degrades silently without a provider — `useFileOpenOptional()` never throws;
+  `ClickableFilename` falls back to a plain, non-interactive `<span>`.
+- **R5** one visual affordance across both mechanisms — `clickable-filename.css` mirrors
+  `basic-tool.css`'s existing hover/cursor treatment.
+
+### Verification
+
+`bun typecheck` (packages/app) exit 0 · `test:unit` (packages/app) 739 pass, unchanged (no
+new files under `packages/app/src`) · `bun run test` (packages/session-ui) 90 pass, 0 fail
+(83 baseline + 7 new) · `test:browser` 41 pass · `git diff --stat` confirms
+`basic-tool.tsx`/`basic-tool-v2.tsx` untouched.
+
+### Known gaps (accepted, not fixed)
+
+- **No line targeting** — files open at the top; `read`'s offset/limit and `edit`'s range
+  are ignored.
+- **`patch`/`apply_patch` stay non-clickable**, including the single-file case: its
+  filename comes from a different, already-relative field (`single()!.relativePath`) than
+  `read`/`edit`/`write`'s `input.filePath`, and `file.load()`-compatibility was not
+  confirmed — excluded rather than guessed at, despite the spec initially framing it as
+  "one line-swap away."
+- **`list` stays non-clickable.**
+- **Manual verification (9 steps in the spec) not run** — needs a live app + project/session
+  to drive, same environment gap as spec 002.
+
+---
+
 ## [002] Side panel minimum width: 2026-09-13
 
 Status: **Implemented** — automated checks pass; manual verification (incl. the tab-bar

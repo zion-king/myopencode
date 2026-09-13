@@ -72,6 +72,7 @@ import {
 } from "@/pages/session/composer"
 import { createOpenReviewFile, createSessionTabs, createSizing, shouldShowFileTree } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/timeline/message-timeline"
+import { FileOpenProvider } from "@opencode-ai/session-ui/context"
 import { createTimelineModel } from "@/pages/session/timeline/model"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
@@ -1161,6 +1162,17 @@ export default function Page() {
     loadFile: file.load,
   })
 
+  // Sibling of `openReviewFile`, but opens a preview (temporary) tab rather than a pinned
+  // one — mirrors `previewTab` in session-side-panel.tsx, for clickable file cards in the
+  // chat timeline (rewrites/specs/003-clickable-file-cards.md).
+  const previewFile = (path: string) => {
+    const next = normalizeTab(file.tab(path))
+    tabs().previewTab(next)
+    void file.load(path)
+    openReviewPanel()
+    queueMicrotask(() => tabs().setActive(next))
+  }
+
   const changesLabel = (option: ChangeMode) => {
     if (option === "git") return language.t("ui.sessionReview.title.git")
     if (option === "branch") return language.t("ui.sessionReview.title.branch")
@@ -2083,6 +2095,7 @@ export default function Page() {
           <Match when={params.id}>
             <Show when={messagesReady() ? params.id : undefined} keyed>
               {(_id) => (
+                <FileOpenProvider onOpen={previewFile}>
                 <MessageTimeline
                   actions={actions}
                   scroll={ui.scroll}
@@ -2119,6 +2132,7 @@ export default function Page() {
                     scrollToEnd = fn
                   }}
                 />
+                </FileOpenProvider>
               )}
             </Show>
           </Match>

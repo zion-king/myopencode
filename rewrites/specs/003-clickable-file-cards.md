@@ -1,10 +1,10 @@
 # 003 — Clickable file cards in the chat timeline
 
-| Field         | Value                                                        |
-| ------------- | ------------------------------------------------------------ |
-| Status        | Planned                                                       |
+| Field         | Value                                                         |
+| ------------- | ------------------------------------------------------------- |
+| Status        | Implemented — automated checks pass                           |
 | Branch        | `rewrite/003-clickable-file-cards`                            |
-| Upstream base | `95daf90670b7c039c436c85537da5fbfe2205b41` (`dev`, 2026-09-11) |
+| Upstream base | `95daf90670b7c039c436c85537da5fbfe2205b41` (`dev`, 2026-09-11)|
 | Release near base | `v1.18.30`                                                |
 | Date          | 2026-09-13                                                    |
 | Audit item    | [audits/001](../audits/001-desktop-developer-experience.md) §3a, Rewrite 13 |
@@ -84,10 +84,14 @@ in preview, reusing the existing open-file behaviour the file tree already uses.
 - **Jumping to a line.** `read` often has `offset`/`limit`, and `edit` targets a range, but the existing
   open-file path is whole-file. Line targeting is a separate change; see Known gaps.
 - **Multi-file `patch` / `apply_patch`.** When they touch several files the subtitle is a *count*, so there
-  is no single target. (Note: the **single-file** case does render a filename in the same slot at
-  `message-part.tsx:2466`, so it is one extra line-swap away — see Design. Decide at implementation;
-  excluded from the estimate here.) `list` renders a *directory*, also out of scope — R3 keeps these
-  non-clickable rather than guessing.
+  is no single target. `list` renders a *directory*, also out of scope — R3 keeps these non-clickable rather
+  than guessing.
+  **Decided at implementation: single-file `patch` (`message-part.tsx:2466`) is also excluded**, despite
+  rendering a filename in the same slot. It uses `single()!.relativePath` — a field from `ToolFileAccordion`'s
+  diff-file model, already relative — not `input.filePath` (which the `read` card pairs with
+  `relativizeProjectPath`, implying it is not pre-relativized). These are different shapes; wiring `patch` on
+  the assumption they are interchangeable risked a silently wrong open-file path, so it was left out rather
+  than guessed at. Revisit as a follow-up if `file.load()`-compatibility is confirmed.
 - **Making the whole card clickable.** The card body already owns click (expand/collapse) via
   `onTriggerClick`; only the subtitle becomes a click target.
 - **Changing `basic-tool.tsx` / `basic-tool-v2.tsx`.** They already support this; touching them would be
@@ -270,12 +274,13 @@ Re-mounting a second `DataProvider` inside the session page to add one callback 
 | `packages/session-ui/src/components/tool-file-path-policy.ts` | New. Pure `openableFilePath(tool, input)`. |
 | `packages/session-ui/src/components/tool-file-path-policy.test.ts` | New. Covers read/edit/write, the excluded tools, and malformed input. |
 | `packages/session-ui/src/context/index.ts` | `+1`. Export the new context. |
-| `packages/session-ui/src/components/message-part.tsx` | `~+5/-2`. Two imports; `onSubtitleClick` on the `read` trigger (+1); filename span swapped for `ClickableFilename` at `:2217` and `:2284` (+2/-2). |
-| `packages/app/src/pages/session.tsx` | `~+4/-1`. Mount the provider around the timeline, handler built from the existing open-file helpers. |
+| `packages/session-ui/src/components/message-part.tsx` | `+11/-3`. Three imports; `onSubtitleClick` on the `read` trigger (+5); filename span swapped for `ClickableFilename` at `:2217` and `:2284` (+2/-2). |
+| `packages/app/src/pages/session.tsx` | `+14/0`. Import, `previewFile` handler mirroring `openReviewFile`, provider mounted around `MessageTimeline`. |
 
-Estimated upstream footprint: **~10 insertions, 3 deletions across 3 files** — a rough figure, to be
-re-derived at implementation from an actual `git diff --stat` (per the audit's §0 note on estimate
-discipline). Add one line-swap if single-file `patch` (`:2466`) is included.
+Actual upstream footprint (measured via `git diff --stat`): **27 insertions, 3 deletions across 4 files**
+(`message-part.tsx`, `session.tsx`, `context/index.ts` +1, `styles/index.css` +1) — `basic-tool.tsx` and
+`basic-tool-v2.tsx` confirmed untouched. Single-file `patch` (`:2466`) was **not** included — see the
+Non-goals correction above.
 
 ## i18n decision
 
@@ -291,15 +296,21 @@ the same `REWRITE_KEY_PREFIXES` array. No new mechanism, and still only two file
 
 ## Automated verification
 
-To run at implementation, from `packages/app` (and `packages/session-ui` where noted):
+| Check | Expectation | Result |
+| ----- | ----------- | ------ |
+| `bun typecheck` (from `packages/app`) | exit 0 | Passed |
+| `bun run test:unit` (from `packages/app`) | baseline pass count, 0 fail (this rewrite adds no files under `packages/app/src`) | 739 pass, 0 fail (unchanged) |
+| `bun run test` (from `packages/session-ui`) | baseline + the new `tool-file-path-policy.test.ts` | 90 pass, 0 fail (was 83; +7 new) |
+| `bun run test:browser` (from `packages/app`) | 41 pass, 0 fail | 41 pass, 0 fail |
+| `git diff --stat` | upstream files only, no changes to `basic-tool.tsx` or `basic-tool-v2.tsx` (P1 check) | 4 files, 27 insertions(+), 3 deletions(-); `basic-tool.tsx`/`basic-tool-v2.tsx` confirmed untouched |
 
-| Check | Expectation |
-| ----- | ----------- |
-| `bun typecheck` | exit 0 (via `tsc -b` fallback; see AppLocker note in `rewrites/README.md`) |
-| `bun run test:unit` | 733 pass baseline + the new policy tests |
-| `tool-file-path-policy.test.ts` | all pass |
-| `bun run test:browser` | 41 pass, 0 fail |
-| `git diff --stat` | 3 upstream files, footprint in the range above; no changes to `basic-tool.tsx` or `basic-tool-v2.tsx` (P1 check) |
+### Manual verification — not completed automatically
+
+Same gap as [spec 002](./002-side-panel-min-width.md): driving the actual app to click a
+`read`/`edit`/`write` card and watch the side panel open requires a running project/session,
+which this implementation pass could not do headlessly in this environment. The 9 steps
+below are the regression suite and must be run by hand before this spec is marked
+**Verified**.
 
 ## Manual verification
 
@@ -319,8 +330,8 @@ These steps are the regression suite for this rewrite. Re-run them after every r
 7. Open a session whose pane is narrow enough to truncate a long filename — the ellipsis still works on
    `edit`/`write` cards (proves no extra wrapper broke the flex-child truncation; Design constraint 1).
 8. Hover the filename on a `read` card and on an `edit` card — identical cursor and hover treatment (R5).
-6. Click the same file card twice — it stays a single preview tab rather than accumulating tabs.
-7. Open the timeline somewhere without the provider (Storybook `basic-tool.stories.tsx`, or the read-only
+9. Click the same file card twice — it stays a single preview tab rather than accumulating tabs.
+10. Open the timeline somewhere without the provider (Storybook `basic-tool.stories.tsx`, or the read-only
    share view if reachable) — cards render, nothing throws (R4).
 
 ## Known gaps

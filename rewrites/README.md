@@ -70,6 +70,7 @@ revised against the codebase before anything is spec'd — see
 | --- | --------------------- | ------ | -------------------------------------------------------------------------------------- | ----------- |
 | 001 | Markdown file preview | Verified | `pages/session/file-tabs.tsx` (+13/-1), `i18n/en.ts` (+3), `i18n/parity.test.ts` (+8/-1) | `95daf90`   |
 | 002 | Side panel minimum width | Implemented (manual verification pending) | `pages/session/session-panel-width.ts` (+2/-2) | `95daf90` |
+| 003 | Clickable file cards in the chat timeline | Implemented (manual verification pending) | `session-ui/components/message-part.tsx` (+11/-3), `app/pages/session.tsx` (+14), `session-ui/context/index.ts` (+1), `session-ui/styles/index.css` (+1) | `95daf90` |
 
 Per-change detail, dates, and commits are in [CHANGELOG.md](./CHANGELOG.md).
 
