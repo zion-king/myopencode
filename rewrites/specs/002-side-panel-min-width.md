@@ -2,7 +2,7 @@
 
 | Field         | Value                                                        |
 | ------------- | ------------------------------------------------------------ |
-| Status        | Planned                                                       |
+| Status        | Implemented — automated checks pass, manual verification pending |
 | Branch        | `rewrite/002-side-panel-min-width`                            |
 | Upstream base | `95daf90670b7c039c436c85537da5fbfe2205b41` (`dev`, 2026-09-11) |
 | Release near base | `v1.18.30`                                                |
@@ -200,16 +200,27 @@ None required. This rewrite adds no user-visible strings, so P6 does not apply a
 
 ## Automated verification
 
-To run at implementation, from `packages/app`:
+Run from `packages/app`:
 
-| Check | Expectation |
-| ----- | ----------- |
-| `bun typecheck` | exit 0 (via `tsc -b` fallback; see AppLocker note in `rewrites/README.md`) |
-| `bun run test:unit` | 733 pass, 0 fail (baseline at `95daf90`), plus the new floors tests |
-| `session-panel-width.test.ts` | 8 pass, **file unmodified** — the contract check that we did not disturb upstream's arithmetic |
-| `session-panel-width-floors.test.ts` | all pass |
-| `bun run test:browser` | 41 pass, 0 fail |
-| `git diff --stat` | exactly `1 file changed, 2 insertions(+), 2 deletions(-)` for upstream files (P3 check) |
+| Check | Expectation | Result |
+| ----- | ----------- | ------ |
+| `bun typecheck` | exit 0 | Passed (`tsgo -b`, no errors) |
+| `bun run test:unit` | 733 pass, 0 fail (baseline at `95daf90`), plus the new floors tests | 739 pass, 0 fail |
+| `session-panel-width.test.ts` | 8 pass, **file unmodified** — the contract check that we did not disturb upstream's arithmetic | 8 pass, file untouched |
+| `session-panel-width-floors.test.ts` | all pass | 6 pass |
+| `bun run test:browser` | 41 pass, 0 fail | 41 pass, 0 fail |
+| `git diff --stat` | exactly `1 file changed, 2 insertions(+), 2 deletions(-)` for upstream files (P3 check) | Matches exactly |
+
+### Tab-bar floor measurement — not completed automatically
+
+The "Open at implementation" item above (measure 280px against the tab bar's intrinsic
+width) requires driving the actual Electron app with a running project/session, which this
+implementation pass could not do headlessly on this Windows environment (no project run
+skill exists yet for this repo, and the app needs a live `opencode` server + project
+directory, not just a static page). 280 remains chosen by analogy to
+`FILE_TREE_WIDTH_MIN = 240`, unconfirmed against the tab bar's actual rendered width. This
+is called out explicitly, per P8, rather than silently assumed — **manual verification step
+5 below must confirm this before the spec is marked fully Verified.**
 
 ## Manual verification
 

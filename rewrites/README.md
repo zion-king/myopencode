@@ -69,6 +69,7 @@ revised against the codebase before anything is spec'd — see
 | ID  | Title                 | Status | Upstream files touched                                                                 | Base commit |
 | --- | --------------------- | ------ | -------------------------------------------------------------------------------------- | ----------- |
 | 001 | Markdown file preview | Verified | `pages/session/file-tabs.tsx` (+13/-1), `i18n/en.ts` (+3), `i18n/parity.test.ts` (+8/-1) | `95daf90`   |
+| 002 | Side panel minimum width | Implemented (manual verification pending) | `pages/session/session-panel-width.ts` (+2/-2) | `95daf90` |
 
 Per-change detail, dates, and commits are in [CHANGELOG.md](./CHANGELOG.md).
 

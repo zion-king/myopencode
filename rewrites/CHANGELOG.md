@@ -67,6 +67,56 @@ scoped-only; each will land later as its own numbered spec against this stabiliz
 
 ---
 
+## [002] Side panel minimum width: 2026-09-13
+
+Status: **Implemented** — automated checks pass; manual verification (incl. the tab-bar
+floor measurement) pending · Base: `95daf90` · Spec:
+[specs/002-side-panel-min-width.md](./specs/002-side-panel-min-width.md) · Plan:
+[plans/002-side-panel-min-width.md](./plans/002-side-panel-min-width.md)
+
+Lets the review/file side panel narrow past its old 480px (unified) / 800px (split) floor,
+so the developer can trade side-panel width for chat-column width at any window size.
+
+### Added (new files)
+
+- `packages/app/src/pages/session/session-panel-width-floors.test.ts`: 6 tests pinning the
+  lowered floors as literal values (280/560), so a silent revert or upstream model rework
+  fails loudly instead of the feature quietly disappearing.
+- `rewrites/plans/002-side-panel-min-width.md`.
+
+### Changed (upstream edits, rebase-sensitive)
+
+- `packages/app/src/pages/session/session-panel-width.ts` (+2/-2): `REVIEW_PANE_WIDTH_MIN`
+  480 → 280, `REVIEW_PANE_WIDTH_MIN_SPLIT` 800 → 560. No other lines touched.
+
+Total upstream footprint: **2 insertions, 2 deletions, 1 file.**
+
+### Requirements delivered
+
+- **R1** lowered reserved widths (280/560).
+- **R2** floor stays usable (280 chosen by analogy to `FILE_TREE_WIDTH_MIN = 240`; not yet
+  empirically confirmed against the tab bar — see Known gaps).
+- **R3** split floor (560) stays strictly greater than unified (280), confirmed by test.
+- **R4** no behavior change above the floor — existing `session-panel-width.test.ts` (8
+  tests, relative assertions) passes unmodified.
+
+### Verification
+
+`bun typecheck` exit 0 · `test:unit` 739 pass (733 baseline + 6 new) · `test:browser` 41
+pass · `session-panel-width.test.ts` 8 pass, file untouched · `git diff --stat` exactly
+`1 file changed, 2 insertions(+), 2 deletions(-)`.
+
+### Known gaps (accepted, not yet resolved)
+
+- **Tab-bar floor measurement not performed.** The spec calls for confirming 280px against
+  the review panel's tab bar (review tab, file tabs, `+`, Open-in-app) in a running app
+  before treating 280 as final. This implementation pass had no way to drive the Electron
+  app + backend headlessly in this environment; needs a manual pass (spec's manual step 5)
+  before the spec is marked **Verified**.
+- Floors remain hardcoded, not user-configurable (by design, see spec's Non-goals).
+
+---
+
 ## [001] Markdown file preview: 2026-08-30
 
 Status: **Verified** · Base: `38e10eb` · Spec: [specs/001-markdown-file-preview.md](./specs/001-markdown-file-preview.md)
