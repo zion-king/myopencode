@@ -41,9 +41,13 @@ rewrites/
     UPSTREAM_SYNC.md        <- step-by-step runbook for syncing with upstream OpenCode
   specs/
     NNN-slug.md             <- one spec per rewrite, numbered in order
+  plans/
+    NNN-slug.md             <- implementation plan for the spec of the same number
   audits/
     README.md               <- audit radar & backlog index
     NNN-slug.md             <- comprehensive architectural audits & scoping roadmaps
+    drafts/
+      NNN-slug.md           <- initial audit pass, kept before its revision
   scripts/
     build-portable.ps1      <- automated portable packaging script for Windows
 ```
@@ -51,6 +55,14 @@ rewrites/
 Specs are numbered (`001-`, `002-`, ...) so ordering and dependencies are obvious.
 Each spec records the exact upstream base commit it was written against, because a
 moving base branch is only reproducible if the commit is written down.
+
+A plan shares its spec's number (`plans/002-*` implements `specs/002-*`). The split is
+deliberate: the **spec** decides *what* changes and *why*, and is the thing re-read after
+every rebase; the **plan** sequences *how* to build it and is disposable once landed.
+
+The full pipeline is audit -> spec -> plan -> implementation. Audits are drafted, then
+revised against the codebase before anything is spec'd — see
+[audits/README.md](./audits/README.md), which records why that verification step exists.
 
 ## Rewrite inventory
 
