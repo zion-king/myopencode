@@ -31,13 +31,13 @@ We prefer a **merge** (with `--no-ff`) over a rebase for upstream syncs to prese
 git merge <target-sha-or-tag> --no-ff -m "merge: sync fork with upstream dev @ <sha>"
 ```
 
-If you followed the principles in `PRINCIPLES.md` (new files, single edit sites, no re-indentation), this should result in **zero textual conflicts**.
+If you followed the principles in [PRINCIPLES.md](./PRINCIPLES.md) (new files, single edit sites, no re-indentation), this should result in **zero textual conflicts**.
 
 ## 3. Environment & Invariants
 
 Upstream merges will likely touch `bun.lock` and structural files. Restore Windows-specific invariants before building.
 
-1. **Windows Symlinks:** Windows checks out git symlinks as text files (`core.symlinks=false`), which breaks typechecking. Ensure the `skip-worktree` workaround on `packages/app/src/custom-elements.d.ts` survived the merge. (See `README.md`).
+1. **Windows Symlinks:** Windows checks out git symlinks as text files (`core.symlinks=false`), which breaks typechecking. Ensure the `skip-worktree` workaround on `packages/app/src/custom-elements.d.ts` survived the merge. (See [../README.md](../README.md)).
 2. **Lockfile Churn:** If `bun.lock` shows as modified but only has LF/CRLF differences or removes orphaned tools not relevant to the build (like coverage tools pruned by Bun 1.4.0), you can safely restore it to keep the tree clean: `git checkout -- bun.lock`.
 3. **Install Dependencies:**
    ```powershell
@@ -82,9 +82,9 @@ Launch the resulting `OpenCode Dev.exe` from the output directory and manually v
 
 Once the integration branch is fully verified:
 
-1. **Update Specs:** Bump the `Upstream base` SHA in all active specs in `rewrites/specs/` to the new target SHA.
-2. **Update Inventory:** Update the Base Commit column in the `rewrites/README.md` inventory table.
-3. **Update Changelog:** Add a new entry to `rewrites/CHANGELOG.md` explicitly recording the upstream sync. Include:
+1. **Update Specs:** Bump the `Upstream base` SHA in all active specs in [`../specs/`](../specs/) to the new target SHA.
+2. **Update Inventory:** Update the Base Commit column in the [`../README.md`](../README.md) inventory table.
+3. **Update Changelog:** Add a new entry to [`../CHANGELOG.md`](../CHANGELOG.md) explicitly recording the upstream sync. Include:
    - The commit range (e.g., `38e10eb -> 95daf90`)
    - Headline improvements gained from upstream
    - Any forced re-derivations or environmental workarounds required.

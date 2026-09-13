@@ -98,7 +98,7 @@ const domains = [
 
 // Local rewrite keys are declared in en.ts only. Other locales resolve them through the
 // English base dictionary (see context/language.tsx), so parity is not required for them.
-// See P6 in rewrites/PRINCIPLES.md.
+// See P6 in rewrites/docs/PRINCIPLES.md.
 const REWRITE_KEY_PREFIXES = ["session.files.markdown."]
 const isRewriteKey = (key: string) => REWRITE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))
 

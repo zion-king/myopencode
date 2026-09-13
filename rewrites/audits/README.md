@@ -4,7 +4,7 @@ Periodic audits of upstream OpenCode and fork customizations to identify, scope,
 
 ## Purpose
 
-The `rewrites/audit/` directory serves as the technical radar and feature scoping backlog for `zion-king/myopencode`. While `rewrites/specs/` contains detailed engineering specs for verified/active rewrites, `rewrites/audit/` contains comprehensive architectural audits, competitive teardowns (e.g. vs Claude Code desktop, Cursor), and prioritized scoping roadmaps.
+The `rewrites/audits/` directory serves as the technical radar and feature scoping backlog for `zion-king/myopencode`. While `rewrites/specs/` contains detailed engineering specs for verified/active rewrites, `rewrites/audits/` contains comprehensive architectural audits, competitive teardowns (e.g. vs Claude Code desktop, Cursor), and prioritized scoping roadmaps.
 
 ## Audit Inventory
 

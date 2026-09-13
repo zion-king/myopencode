@@ -13,7 +13,7 @@ implemented it. Statuses mirror the spec header and the inventory table in `READ
 `Planned` -> `Implemented` -> `Verified`. Dates are the implementing commit dates.
 
 Format is adapted from [Keep a Changelog](https://keepachangelog.com). Because rewrites
-deliberately minimise upstream edits (see `PRINCIPLES.md`), each entry separates **new
+deliberately minimise upstream edits (see [docs/PRINCIPLES.md](./docs/PRINCIPLES.md)), each entry separates **new
 files** (ours, conflict-free) from **upstream edits** (the rebase-sensitive surface).
 
 ---
@@ -62,7 +62,7 @@ we had documented.
 
 ### Deferred
 
-The 10 rewrites scoped in `rewrites/audit/001-desktop-developer-experience.md` remain
+The 10 rewrites scoped in [audits/001-desktop-developer-experience.md](./audits/001-desktop-developer-experience.md) remain
 scoped-only; each will land later as its own numbered spec against this stabilized base.
 
 ---
@@ -85,7 +85,7 @@ Render markdown files as formatted markdown in the session file view, reusing th
 - `packages/app/src/pages/session/markdown-file-view-policy.ts`: pure logic: markdown
   extension match (`.md`, `.markdown`, `.mdx`, `.mdc`) and the 100 KB preview size limit.
 - `packages/app/src/pages/session/markdown-file-view-policy.test.ts`: 9 tests, no DOM.
-- `rewrites/README.md`, `rewrites/PRINCIPLES.md`, `rewrites/specs/001-markdown-file-preview.md`.
+- `rewrites/README.md`, `rewrites/docs/PRINCIPLES.md`, `rewrites/specs/001-markdown-file-preview.md`.
 
 ### Changed (upstream edits, rebase-sensitive)
 

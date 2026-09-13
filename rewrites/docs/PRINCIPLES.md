@@ -3,7 +3,7 @@
 How to make a change to upstream OpenCode in this fork without creating a maintenance
 problem for yourself later.
 
-`README.md` is the entry point (why the fork exists, inventory, environment, build, rebase
+[`../README.md`](../README.md) is the entry point (why the fork exists, inventory, environment, build, rebase
 runbook). This file is the playbook for *making a change*. Every spec should cite the
 principles it relied on in its "Rebase notes" section.
 
@@ -163,7 +163,7 @@ Local machine problems must not become tracked changes.
 Rewrite 001 needed `packages/app/src/custom-elements.d.ts` materialized because Windows
 checked out git symlinks as text files. It is hidden from git with
 `git update-index --skip-worktree`, not committed, and documented under
-"Windows symlinks" in `README.md`.
+"Windows symlinks" in [`../README.md`](../README.md).
 
 If a fix helps only your machine, it belongs in documentation.
 
@@ -186,7 +186,7 @@ Before considering it done:
 - [ ] New i18n keys in `en.ts` + allowlist only? (P6)
 - [ ] `bun typecheck` exits 0, `test:unit` and `test:browser` green.
 - [ ] Spec updated: files table, verification results, rebase notes, known gaps.
-- [ ] Inventory row added to `README.md`.
+- [ ] Inventory row added to [`../README.md`](../README.md).
 - [ ] No environment workaround committed. (P10)
 
 ## Anti-patterns

@@ -163,7 +163,7 @@ Git's default 3-way merge is not whitespace-tolerant, so this materially reduces
 Three keys were required (`.preview`, `.source`, `.tooLarge`); no reusable equivalents
 existed in `en.ts`. Adding them to all 60+ locale bundles would have been the single
 largest diff in this rewrite. They live in `en.ts` only, with a prefix allowlist in
-`parity.test.ts`. See P6 in `rewrites/PRINCIPLES.md` for the rationale and the automatic
+`parity.test.ts`. See P6 in [docs/PRINCIPLES.md](../docs/PRINCIPLES.md) for the rationale and the automatic
 English-fallback mechanism that makes it safe.
 
 ## Automated verification
@@ -219,7 +219,7 @@ Nothing else in the tree depends on either.
 
 ## Principles applied
 
-See `rewrites/PRINCIPLES.md`. This rewrite is where they were derived.
+See [docs/PRINCIPLES.md](../docs/PRINCIPLES.md). This rewrite is where they were derived.
 
 | Principle | Applied as |
 | --------- | ---------- |

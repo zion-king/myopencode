@@ -19,7 +19,7 @@ OpenCode provides an extraordinarily capable backend engine: multi-turn agent ex
 
 This audit analyzes the full desktop client surface and establishes the **Top 10 Scoped Rewrites and Customizations** required to elevate OpenCode Desktop to best-in-class developer experience.
 
-Each rewrite is scoped according to the fork's governing principle in [PRINCIPLES.md](../PRINCIPLES.md): **minimize upstream diff surface** by isolating logic into new `-policy.ts` and component files while keeping upstream patch sites down to single-line invocation hooks.
+Each rewrite is scoped according to the fork's governing principle in [PRINCIPLES.md](../docs/PRINCIPLES.md): **minimize upstream diff surface** by isolating logic into new `-policy.ts` and component files while keeping upstream patch sites down to single-line invocation hooks.
 
 ---
 

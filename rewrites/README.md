@@ -28,18 +28,24 @@ the size of your feature.**
 
 The full playbook — including the rename-don't-re-indent pattern that took rewrite 001
 from `+62/-50` to `+13/-1`, the i18n policy, and a per-rewrite checklist — is in
-**[PRINCIPLES.md](./PRINCIPLES.md)**. Read it before making a change.
+**[PRINCIPLES.md](./docs/PRINCIPLES.md)**. Read it before making a change.
 
 ## Layout
 
 ```
 rewrites/
   README.md                 <- this file: index, inventory, environment, build
-  PRINCIPLES.md             <- how to make a change safely; read before editing upstream
-  UPSTREAM_SYNC.md          <- step-by-step runbook for syncing with upstream OpenCode
   CHANGELOG.md              <- running record of every landed spec and rewrite update
+  docs/
+    PRINCIPLES.md           <- how to make a change safely; read before editing upstream
+    UPSTREAM_SYNC.md        <- step-by-step runbook for syncing with upstream OpenCode
   specs/
     NNN-slug.md             <- one spec per rewrite, numbered in order
+  audits/
+    README.md               <- audit radar & backlog index
+    NNN-slug.md             <- comprehensive architectural audits & scoping roadmaps
+  scripts/
+    build-portable.ps1      <- automated portable packaging script for Windows
 ```
 
 Specs are numbered (`001-`, `002-`, ...) so ordering and dependencies are obvious.
@@ -196,4 +202,4 @@ Where `<TargetFolder>` is the path to your local projects folder. By default, it
 This fork tracks upstream `dev`, which has no release boundaries. Sync deliberately,
 not continuously.
 
-For a comprehensive, step-by-step guide on safely merging upstream changes, verifying the build, and handling Windows environment quirks, see **[UPSTREAM_SYNC.md](./UPSTREAM_SYNC.md)**.
+For a comprehensive, step-by-step guide on safely merging upstream changes, verifying the build, and handling Windows environment quirks, see **[UPSTREAM_SYNC.md](./docs/UPSTREAM_SYNC.md)**.
